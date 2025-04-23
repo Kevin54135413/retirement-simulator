@@ -116,7 +116,8 @@ if final_assets:
         "Median Asset": [int(np.median(final_assets))],
         "Top 25% Median": [int(np.percentile(final_assets, 75))],
         "Bottom 25% Median": [int(np.percentile(final_assets, 25))]
-    }))
+    }).style.hide(axis="index"),
+    use_container_width=True
 
 
 # 顯示 Market Scenarios 表格
@@ -132,7 +133,7 @@ scenario_table = pd.DataFrame([
     }
     for duration, stock_mean, stock_std, bond_mean, bond_std, label in scenarios
 ])
-st.dataframe(scenario_table, use_container_width=True)
+st.dataframe(scenario_table.style.hide(axis="index"), use_container_width=True)
 
 # 繪製直方圖
 success_returns = [r["return_rate"] for r in successes if r["return_rate"] is not None]
