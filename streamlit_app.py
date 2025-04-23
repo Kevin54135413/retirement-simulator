@@ -110,14 +110,16 @@ col2.metric("Average Bankruptcy Year", f"{avg_bk:.1f}" if avg_bk else "None")
 final_assets = [r["ending_asset"] for r in successes if r["ending_asset"] is not None]
 if final_assets:
     st.write("Statistics of Ending Assets for Successful Cases")
-    st.write(pd.DataFrame({
-        "Duration": ["30 years"],
-        "Initial Asset": [1000],
-        "Median Asset": [int(np.median(final_assets))],
-        "Top 25% Median": [int(np.percentile(final_assets, 75))],
-        "Bottom 25% Median": [int(np.percentile(final_assets, 25))]
-    }).style.hide(axis="index"),
-    use_container_width=True
+    st.dataframe(
+        pd.DataFrame({
+            "Duration": ["30 years"],
+            "Initial Asset": [1000],
+            "Median Asset": [int(np.median(final_assets))],
+            "Top 25% Median": [int(np.percentile(final_assets, 75))],
+            "Bottom 25% Median": [int(np.percentile(final_assets, 25))]
+        }).style.hide(axis="index"),  # 關鍵：這裡關閉索引欄
+        use_container_width=True
+    )
 
 
 # 顯示 Market Scenarios 表格
