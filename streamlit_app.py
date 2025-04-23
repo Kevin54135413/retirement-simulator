@@ -1,4 +1,4 @@
-# 精簡熱力圖 + 平行運算 + 初始金額與統計修正
+# Simplified Heatmap + Parallel Computing + Initial Asset & Statistics Fix
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -9,22 +9,18 @@ import numpy_financial as npf
 import random
 import matplotlib
 from joblib import Parallel, delayed
-import matplotlib.font_manager as fm
 
-font_path = "NotoSansTC-VariableFont_wght.ttf"
-font_prop = fm.FontProperties(fname=font_path)
-plt.rcParams['font.family'] = font_prop.get_name()
-
+matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
 st.set_page_config(layout="wide")
 
 SCENARIOS_FIXED = [
-    (3, -0.02, 0.25, 0.01, 0.08, "2008–2010 金融危機"),
-    (3, 0.10, 0.18, 0.03, 0.05, "2011–2013 復續牛市"),
-    (2, 0.01, 0.20, 0.02, 0.06, "2014–2015 歐債危機"),
-    (5, 0.09, 0.16, 0.04, 0.05, "2016–2020 牛市繼行"),
+    (3, -0.02, 0.25, 0.01, 0.08, "2008–2010 Financial Crisis"),
+    (3, 0.10, 0.18, 0.03, 0.05, "2011–2013 Bull Market Recovery"),
+    (2, 0.01, 0.20, 0.02, 0.06, "2014–2015 European Debt Crisis"),
+    (5, 0.09, 0.16, 0.04, 0.05, "2016–2020 Continued Bull Market"),
     (2, -0.05, 0.30, 0.00, 0.10, "2021–2022 COVID-19"),
-    (3, 0.06, 0.18, 0.01, 0.08, "2023–2025 疫後通股"),
-    (30, 0.07, 0.14, 0.03, 0.05, "2026+ 平穩成長")
+    (3, 0.06, 0.18, 0.01, 0.08, "2023–2025 Post-Pandemic Recovery"),
+    (30, 0.07, 0.14, 0.03, 0.05, "2026+ Stable Growth")
 ]
 
 @st.cache_data
@@ -90,91 +86,87 @@ def simulate_once(sim_id, initial_asset, withdraw_rate, years, stock_ratio, seed
     return_rate = (final_asset / initial_asset) ** (1 / years) - 1
     return {"ending_asset": final_asset, "bankruptcy_year": None, "return_rate": return_rate, "irr": None}
 
-# 側邊欄參數
-st.sidebar.title("模擬參數設定")
-withdraw_rate = st.sidebar.slider("提領率 (%)", 2.0, 6.0, 4.0, step=0.5) / 100
-stock_ratio = st.sidebar.slider("股票比例", 0.0, 1.0, 0.7, step=0.1)
-n_simulations = st.sidebar.number_input("模擬次數", min_value=1000, max_value=5000, value=1000, step=500)
-use_random_scenario = st.sidebar.checkbox("使用隨機情境順序", value=False)
-run_grid_analysis = st.sidebar.checkbox("執行網格熱力圖分析")
+st.sidebar.title("Simulation Parameters")
+withdraw_rate = st.sidebar.slider("Withdrawal Rate (%)", 2.0, 6.0, 4.0, step=0.5) / 100
+stock_ratio = st.sidebar.slider("Stock Allocation", 0.0, 1.0, 0.7, step=0.1)
+n_simulations = st.sidebar.number_input("Number of Simulations", min_value=1000, max_value=5000, value=1000, step=500)
+use_random_scenario = st.sidebar.checkbox("Use Random Scenario Order", value=False)
+run_grid_analysis = st.sidebar.checkbox("Run Grid Heatmap Analysis")
 
-# 簡化市場情境顯示
 scenarios = generate_random_scenarios(seed=42) if use_random_scenario else SCENARIOS_FIXED
-with st.sidebar.expander("📘 使用的市場情境（簡化顯示）"):
+with st.sidebar.expander("📘 Market Scenarios (Simplified Display)"):
     for dur, stock_mean, stock_std, _, _, label in scenarios:
-        st.markdown(f"• {label}（{dur}年）：報酬率 {stock_mean:.0%}，波動 {stock_std:.0%}")
+        st.markdown(f"• {label} ({dur} years): Return {stock_mean:.0%}, Volatility {stock_std:.0%}")
 
-# 單一模擬執行
 results = [simulate_once(i, 1000, withdraw_rate, 30, stock_ratio, 42, scenarios) for i in range(n_simulations)]
 successes = [r for r in results if r["bankruptcy_year"] is None]
 failures = [r for r in results if r["bankruptcy_year"] is not None]
 
-st.header("模擬結果（單一組合）")
+st.header("Simulation Results (Single Configuration)")
 col1, col2 = st.columns(2)
-col1.metric("成功率", f"{len(successes) / n_simulations:.1%}")
+col1.metric("Success Rate", f"{len(successes) / n_simulations:.1%}")
 avg_bk = np.mean([r['bankruptcy_year'] for r in failures]) if failures else None
-col2.metric("平均破產年", f"{avg_bk:.1f}" if avg_bk else "無")
+col2.metric("Average Bankruptcy Year", f"{avg_bk:.1f}" if avg_bk else "None")
 
 final_assets = [r["ending_asset"] for r in successes if r["ending_asset"] is not None]
 if final_assets:
-    st.write("成功組資產統計")
+    st.write("Statistics of Ending Assets for Successful Cases")
     st.write(pd.DataFrame({
-        "期間": ["30年"],
-        "初始金額": [1000],
-        "資產中位數": [int(np.median(final_assets))],
-        "前25%資產": [int(np.median(final_assets[int(len(final_assets)*0.75):]))],
-        "後25%資產": [int(np.median(final_assets[:int(len(final_assets)*0.25)]))]
+        "Duration": ["30 years"],
+        "Initial Asset": [1000],
+        "Median Asset": [int(np.median(final_assets))],
+        "Top 25% Median": [int(np.median(final_assets[int(len(final_assets)*0.75):]))],
+        "Bottom 25% Median": [int(np.median(final_assets[:int(len(final_assets)*0.25)]))]
     }))
 
-# 年報酬率與IRR直方圖
 success_returns = [r["return_rate"] for r in successes if r["return_rate"] is not None]
 failure_irrs = [r["irr"] for r in failures if r["irr"] is not None]
 fig, ax = plt.subplots(figsize=(10, 4))
-sns.histplot(success_returns, bins=50, kde=True, color="green", label="成功報酬率", ax=ax)
-sns.histplot(failure_irrs, bins=50, kde=True, color="red", label="破產 IRR", ax=ax)
+sns.histplot(success_returns, bins=50, kde=True, color="green", label="Success Return Rate", ax=ax)
+sns.histplot(failure_irrs, bins=50, kde=True, color="red", label="Bankruptcy IRR", ax=ax)
 ax.legend()
-ax.set_title("年報酬率分佈")
-ax.set_xlabel("報酬率")
-ax.set_ylabel("次數")
+ax.set_title("Distribution of Annual Returns")
+ax.set_xlabel("Return Rate")
+ax.set_ylabel("Frequency")
 ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 st.pyplot(fig)
 
-# 熱力圖分析（平行運算）
 if run_grid_analysis:
-    st.header("多組提領率與股票比例組合的熱力圖分析")
+    st.header("Grid Heatmap Analysis of Multiple Configurations")
 
     def simulate_grid(wr, sr, n_simulations, scenarios):
         res = [simulate_once(i, 1000, wr, 30, sr, 100 + i, scenarios) for i in range(n_simulations)]
         success = [r for r in res if r['bankruptcy_year'] is None]
         fail = [r for r in res if r['bankruptcy_year'] is not None]
         return {
-            "提領率": wr,
-            "股票比例": sr,
-            "成功率": len(success) / n_simulations,
-            "前25%中位數": np.median(sorted([r["ending_asset"] for r in success])[int(len(success)*0.75):]) if success else None,
-            "後25%中位數": np.median(sorted([r["ending_asset"] for r in success])[:int(len(success)*0.25)]) if success else None,
-            "破產年中位數": np.median([r["bankruptcy_year"] for r in fail]) if fail else None
+            "Withdrawal Rate": wr,
+            "Stock Allocation": sr,
+            "Success Rate": len(success) / n_simulations,
+            "Top 25% Median": np.median(sorted([r["ending_asset"] for r in success])[int(len(success)*0.75):]) if success else None,
+            "Bottom 25% Median": np.median(sorted([r["ending_asset"] for r in success])[:int(len(success)*0.25)]) if success else None,
+            "Median Bankruptcy Year": np.median([r["bankruptcy_year"] for r in fail]) if fail else None
         }
 
     withdraw_rates = np.arange(0.03, 0.071, 0.01)
     stock_ratios = np.arange(0.0, 1.01, 0.2)
     param_grid = [(wr, sr) for wr in withdraw_rates for sr in stock_ratios]
-    st.info("🚀 使用平行運算中，請耐心等候結果...")
+    st.info("🚀 Running Parallel Simulations. Please wait...")
     grid_results = Parallel(n_jobs=-1)(delayed(simulate_grid)(wr, sr, n_simulations, scenarios) for wr, sr in param_grid)
 
     def plot_heatmap(data, value_col, title, cmap):
         df = pd.DataFrame(data)
-        pivot = df.pivot(index="提領率", columns="股票比例", values=value_col)
+        pivot = df.pivot(index="Withdrawal Rate", columns="Stock Allocation", values=value_col)
         pivot.index = [f"{x:.1%}" for x in pivot.index]
         pivot.columns = [f"{x:.0%}" for x in pivot.columns]
         fig, ax = plt.subplots(figsize=(12, 6))
-        sns.heatmap(pivot, annot=True, fmt=".1f" if '年' in title else ".0f", cmap=cmap, ax=ax)
+        sns.heatmap(pivot, annot=True, fmt=".1f" if 'Year' in title else ".0f", cmap=cmap, ax=ax)
         ax.set_title(title)
-        ax.set_xlabel("股票比例")
-        ax.set_ylabel("提領率")
+        ax.set_xlabel("Stock Allocation")
+        ax.set_ylabel("Withdrawal Rate")
         st.pyplot(fig)
 
-    plot_heatmap(grid_results, "成功率", "30年成功率熱力圖", "YlGnBu")
-    plot_heatmap(grid_results, "前25%中位數", "前25%成功組資產中位數", "PuBuGn")
-    plot_heatmap(grid_results, "後25%中位數", "後25%成功組資產中位數", "OrRd")
-    plot_heatmap(grid_results, "破產年中位數", "破產年中位數熱力圖", "YlOrBr")
+    plot_heatmap(grid_results, "Success Rate", "30-Year Success Rate Heatmap", "YlGnBu")
+    plot_heatmap(grid_results, "Top 25% Median", "Top 25% Median Ending Asset", "PuBuGn")
+    plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
+    plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
+
