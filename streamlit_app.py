@@ -1,4 +1,4 @@
-# Simplified Heatmap + Parallel Computing + Initial Asset & Statistics Fix
+# Optimized Streamlit Retirement Simulator with Grid Heatmap and IRR Visualization
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -23,7 +23,7 @@ SCENARIOS_FIXED = [
     (30, 0.07, 0.14, 0.03, 0.05, "2026+ Stable Growth")
 ]
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def generate_random_scenarios(seed=42):
     rng = random.Random(seed)
     blocks = rng.sample(SCENARIOS_FIXED[:-1], k=len(SCENARIOS_FIXED)-1)
@@ -94,7 +94,7 @@ use_random_scenario = st.sidebar.checkbox("Use Random Scenario Order", value=Fal
 run_grid_analysis = st.sidebar.checkbox("Run Grid Heatmap Analysis")
 
 scenarios = generate_random_scenarios(seed=42) if use_random_scenario else SCENARIOS_FIXED
-with st.sidebar.expander("📘 Market Scenarios (Simplified Display)"):
+with st.sidebar.expander("\U0001F4D8 Market Scenarios (Simplified Display)"):
     for dur, stock_mean, stock_std, _, _, label in scenarios:
         st.markdown(f"• {label} ({dur} years): Return {stock_mean:.0%}, Volatility {stock_std:.0%}")
 
@@ -115,8 +115,8 @@ if final_assets:
         "Duration": ["30 years"],
         "Initial Asset": [1000],
         "Median Asset": [int(np.median(final_assets))],
-        "Top 25% Median": [int(np.median(final_assets[int(len(final_assets)*0.75):]))],
-        "Bottom 25% Median": [int(np.median(final_assets[:int(len(final_assets)*0.25)]))]
+        "Top 25% Median": [int(np.percentile(final_assets, 75))],
+        "Bottom 25% Median": [int(np.percentile(final_assets, 25))]
     }))
 
 success_returns = [r["return_rate"] for r in successes if r["return_rate"] is not None]
@@ -142,24 +142,27 @@ if run_grid_analysis:
             "Withdrawal Rate": wr,
             "Stock Allocation": sr,
             "Success Rate": len(success) / n_simulations,
-            "Top 25% Median": np.median(sorted([r["ending_asset"] for r in success])[int(len(success)*0.75):]) if success else None,
-            "Bottom 25% Median": np.median(sorted([r["ending_asset"] for r in success])[:int(len(success)*0.25)]) if success else None,
+            "Top 25% Median": np.percentile([r["ending_asset"] for r in success], 75) if success else None,
+            "Bottom 25% Median": np.percentile([r["ending_asset"] for r in success], 25) if success else None,
             "Median Bankruptcy Year": np.median([r["bankruptcy_year"] for r in fail]) if fail else None
         }
 
-    withdraw_rates = np.arange(0.02, 0.06, 0.005)
-    stock_ratios = np.arange(0.0, 1.00, 0.2)
+    withdraw_rates = np.arange(0.02, 0.061, 0.005)
+    stock_ratios = np.arange(0.0, 1.01, 0.2)
     param_grid = [(wr, sr) for wr in withdraw_rates for sr in stock_ratios]
-    st.info("🚀 Running Parallel Simulations. Please wait...")
+    st.info("\U0001F680 Running Parallel Simulations. Please wait...")
     grid_results = Parallel(n_jobs=-1)(delayed(simulate_grid)(wr, sr, n_simulations, scenarios) for wr, sr in param_grid)
 
     def plot_heatmap(data, value_col, title, cmap):
         df = pd.DataFrame(data)
         pivot = df.pivot(index="Withdrawal Rate", columns="Stock Allocation", values=value_col)
+        fmt = ".1%" if value_col == "Success Rate" else ".1f" if "Year" in title else ".0f"
+        if value_col == "Success Rate":
+            pivot *= 100
         pivot.index = [f"{x:.1%}" for x in pivot.index]
         pivot.columns = [f"{x:.0%}" for x in pivot.columns]
         fig, ax = plt.subplots(figsize=(12, 6))
-        sns.heatmap(pivot, annot=True, fmt=".1f" if 'Year' in title else ".0f", cmap=cmap, ax=ax)
+        sns.heatmap(pivot, annot=True, fmt=fmt, cmap=cmap, ax=ax)
         ax.set_title(title)
         ax.set_xlabel("Stock Allocation")
         ax.set_ylabel("Withdrawal Rate")
@@ -169,3 +172,4 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Top 25% Median", "Top 25% Median Ending Asset", "PuBuGn")
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
+
