@@ -10,11 +10,10 @@ import random
 import matplotlib
 from joblib import Parallel, delayed
 import matplotlib.font_manager as fm
-import matplotlib.pyplot as plt
 
-font_path = "/usr/share/fonts/truetype/arphic/ukai.ttc"  # Linux 常見中文字型路徑
-fm.fontManager.addfont(font_path)
-plt.rcParams['font.family'] = fm.FontProperties(fname=font_path).get_name()
+font_path = "NotoSansTC-VariableFont_wght.ttf"
+font_prop = fm.FontProperties(fname=font_path)
+plt.rcParams['font.family'] = font_prop.get_name()
 
 st.set_page_config(layout="wide")
 
