@@ -88,13 +88,14 @@ def simulate_once(sim_id, initial_asset, withdraw_rate, years, stock_ratio, seed
 
 st.sidebar.title("Simulation Parameters")
 withdraw_rate = st.sidebar.slider("Withdrawal Rate (%)", 2.0, 6.0, 4.0, step=0.5) / 100
-stock_ratio = st.sidebar.slider("Stock Allocation", 0.0, 1.0, 0.7, step=0.1)
+stock_ratio_percent = st.sidebar.slider("Stock Allocation (%)", 0, 100, 70, step=10)
+stock_ratio = stock_ratio_percent / 100  # 實際計算使用小數
 n_simulations = st.sidebar.number_input("Number of Simulations", min_value=1000, max_value=5000, value=1000, step=500)
-use_random_scenario = st.sidebar.checkbox("Use Random Scenario Order", value=False)
+use_random_scenario = st.sidebar.checkbox("Random Market Scenarios", value=False)
 run_grid_analysis = st.sidebar.checkbox("Run Grid Heatmap Analysis")
 
 scenarios = generate_random_scenarios(seed=42) if use_random_scenario else SCENARIOS_FIXED
-with st.sidebar.expander("\U0001F4D8 Market Scenarios (Simplified Display)"):
+with st.sidebar.expander("\U0001F4D8 Market Scenarios"):
     for dur, stock_mean, stock_std, _, _, label in scenarios:
         st.markdown(f"• {label} ({dur} years): Return {stock_mean:.0%}, Volatility {stock_std:.0%}")
 
@@ -102,7 +103,7 @@ results = [simulate_once(i, 1000, withdraw_rate, 30, stock_ratio, 42, scenarios)
 successes = [r for r in results if r["bankruptcy_year"] is None]
 failures = [r for r in results if r["bankruptcy_year"] is not None]
 
-st.header("Simulation Results (Single Configuration)")
+st.header("Results of Monte Carol Simulation")
 col1, col2 = st.columns(2)
 col1.metric("Success Rate", f"{len(successes) / n_simulations:.1%}")
 avg_bk = np.mean([r['bankruptcy_year'] for r in failures]) if failures else None
@@ -132,7 +133,7 @@ ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 st.pyplot(fig)
 
 if run_grid_analysis:
-    st.header("Grid Heatmap Analysis of Multiple Configurations")
+    st.header("Grid Heatmap Analysis for Market Scenarios")
 
     def simulate_grid(wr, sr, n_simulations, scenarios):
         res = [simulate_once(i, 1000, wr, 30, sr, 100 + i, scenarios) for i in range(n_simulations)]
@@ -147,8 +148,8 @@ if run_grid_analysis:
             "Median Bankruptcy Year": np.median([r["bankruptcy_year"] for r in fail]) if fail else None
         }
 
-    withdraw_rates = np.arange(0.02, 0.061, 0.005)
-    stock_ratios = np.arange(0.0, 1.01, 0.2)
+    withdraw_rates = np.arange(0.02, 0.06, 0.005)
+    stock_ratios = np.arange(0.0, 1.0, 0.1)
     param_grid = [(wr, sr) for wr in withdraw_rates for sr in stock_ratios]
     st.info("\U0001F680 Running Parallel Simulations. Please wait...")
     grid_results = Parallel(n_jobs=-1)(delayed(simulate_grid)(wr, sr, n_simulations, scenarios) for wr, sr in param_grid)
