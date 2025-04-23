@@ -159,7 +159,7 @@ if run_grid_analysis:
         pivot = df.pivot(index="Withdrawal Rate", columns="Stock Allocation", values=value_col)
         fmt = ".1%" if value_col == "Success Rate" else ".1f" if "Year" in title else ".0f"
         if value_col == "Success Rate":
-            pivot *= 100
+            fmt = ".1%"
         pivot.index = [f"{x:.1%}" for x in pivot.index]
         pivot.columns = [f"{x:.0%}" for x in pivot.columns]
         fig, ax = plt.subplots(figsize=(12, 6))
