@@ -10,7 +10,7 @@ import random
 import matplotlib
 from joblib import Parallel, delayed
 
-matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
+matplotlib.rcParams['font.family'] = ['Taipei Sans TC Beta', 'Microsoft JhengHei', 'Heiti TC', 'Arial Unicode MS', 'sans-serif']
 st.set_page_config(layout="wide")
 
 SCENARIOS_FIXED = [
