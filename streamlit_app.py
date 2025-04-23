@@ -147,8 +147,8 @@ if run_grid_analysis:
             "Median Bankruptcy Year": np.median([r["bankruptcy_year"] for r in fail]) if fail else None
         }
 
-    withdraw_rates = np.arange(0.03, 0.071, 0.01)
-    stock_ratios = np.arange(0.0, 1.01, 0.2)
+    withdraw_rates = np.arange(0.02, 0.06, 0.005)
+    stock_ratios = np.arange(0.0, 1.00, 0.2)
     param_grid = [(wr, sr) for wr in withdraw_rates for sr in stock_ratios]
     st.info("🚀 Running Parallel Simulations. Please wait...")
     grid_results = Parallel(n_jobs=-1)(delayed(simulate_grid)(wr, sr, n_simulations, scenarios) for wr, sr in param_grid)
