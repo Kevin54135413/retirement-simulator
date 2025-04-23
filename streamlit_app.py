@@ -95,17 +95,6 @@ use_random_scenario = st.sidebar.checkbox("Random Market Scenarios", value=False
 run_grid_analysis = st.sidebar.checkbox("Run Grid Heatmap Analysis")
 
 scenarios = generate_random_scenarios(seed=42) if use_random_scenario else SCENARIOS_FIXED
-with st.sidebar.expander("📘 Market Scenarios (Summary Table)"):
-    scenario_table = pd.DataFrame([
-        {
-            "Period": label,
-            "Years": dur,
-            "Stock Return": f"{stock_mean:.1%}",
-            "Stock Volatility": f"{stock_std:.1%}",
-       }
-        for dur, stock_mean, stock_std, label in scenarios
-    ])
-    st.dataframe(scenario_table, use_container_width=True, hide_index=True)
 
 
 results = [simulate_once(i, 1000, withdraw_rate, 30, stock_ratio, 42, scenarios) for i in range(n_simulations)]
