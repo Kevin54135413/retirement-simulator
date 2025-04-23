@@ -177,6 +177,22 @@ if run_grid_analysis:
         ax.set_xlabel("Stock Allocation")
         ax.set_ylabel("Withdrawal Rate")
         st.pyplot(fig)
+        # 顯示 Market Scenarios 表格
+        st.subheader("Market Scenarios Overview")
+
+        scenario_table = pd.DataFrame([
+            {
+                "Label": label,
+                "Duration (yrs)": duration,
+                "Stock Mean": f"{stock_mean:.2%}",
+                "Stock Std": f"{stock_std:.2%}",
+                "Bond Mean": f"{bond_mean:.2%}",
+                "Bond Std": f"{bond_std:.2%}"
+            }
+            for duration, stock_mean, stock_std, bond_mean, bond_std, label in scenarios
+        ])
+
+st.dataframe(scenario_table, use_container_width=True)
 
     plot_heatmap(grid_results, "Success Rate", "30-Year Success Rate Heatmap", "YlGnBu")
     plot_heatmap(grid_results, "Top 25% Median", "Top 25% Median Ending Asset", "PuBuGn")
