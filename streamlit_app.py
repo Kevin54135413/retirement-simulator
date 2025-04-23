@@ -181,7 +181,7 @@ if run_grid_analysis:
             for duration, stock_mean, stock_std, bond_mean, bond_std, label in scenarios
         ])
 
-st.dataframe(scenario_table, use_container_width=True)
+        st.dataframe(scenario_table, use_container_width=True)
 
     plot_heatmap(grid_results, "Success Rate", "30-Year Success Rate Heatmap", "YlGnBu")
     plot_heatmap(grid_results, "Top 25% Median", "Top 25% Median Ending Asset", "PuBuGn")
