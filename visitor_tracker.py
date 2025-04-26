@@ -104,7 +104,3 @@ def track():
         st.caption(f"本月訪問：{month_count:,} 人")
         st.caption(f"今年訪問：{year_count:,} 人")
         st.caption(f"總訪問：{total_count:,} 人")
-
-    # 畫最近7日流量圖
-    st.subheader("最近7日不同使用者訪問量")
-    plot_recent_visits()
