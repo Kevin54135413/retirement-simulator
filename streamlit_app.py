@@ -11,6 +11,7 @@ import matplotlib
 from joblib import Parallel, delayed
 import datetime
 import os
+import sqlite3
 
 
 matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
@@ -196,53 +197,57 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
 
-# --- 訪問統計區塊 ---
+# --- 連接到 SQLite ---
+DB_FILE = "visitors.db"
+conn = sqlite3.connect(DB_FILE)
+c = conn.cursor()
 
-# 設定CSV檔案路徑
-COUNTER_FILE = "visitor_counter.csv"
+# --- 建立資料表 ---
+c.execute('''
+    CREATE TABLE IF NOT EXISTS visitors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT,
+        user_id TEXT
+    )
+''')
+conn.commit()
+
+# --- 取得今天日期 & 模擬使用者ID ---
 today = datetime.date.today()
+query_params = st.experimental_get_query_params()
+user_id = query_params.get("user", ["unknown"])[0]  # 如果網址沒有參數就用 unknown
 
-# 取得使用者模擬ID（這裡假設網址帶參數 ?user=kevin）
-query_params = st.query_params
-user_id = query_params.get("user", ["unknown"])[0]
+# --- 判斷今天是否已經記錄過這個使用者 ---
+c.execute('SELECT * FROM visitors WHERE date = ? AND user_id = ?', (today.isoformat(), user_id))
+if not c.fetchone():
+    # 沒有的話新增一筆
+    c.execute('INSERT INTO visitors (date, user_id) VALUES (?, ?)', (today.isoformat(), user_id))
+    conn.commit()
 
-# 檢查並建立檔案（第一次使用）
-if not os.path.exists(COUNTER_FILE):
-    df = pd.DataFrame(columns=["date", "user_id"])  # 一開始就包含 user_id 欄位
-    df.to_csv(COUNTER_FILE, index=False)
-    
-# 嘗試讀取
-try:
-    df = pd.read_csv(COUNTER_FILE)
-    df["date"] = pd.to_datetime(df["date"])
-    if "user_id" not in df.columns:
-        df["user_id"] = ""
-except (pd.errors.EmptyDataError, KeyError):
-    df = pd.DataFrame(columns=["date", "user_id"])
+# --- 統計 ---
+# 今日不同使用者數
+c.execute('SELECT COUNT(DISTINCT user_id) FROM visitors WHERE date = ?', (today.isoformat(),))
+today_count = c.fetchone()[0]
 
+# 本月不同使用者數
+c.execute('SELECT COUNT(DISTINCT user_id) FROM visitors WHERE strftime("%Y-%m", date) = ?', (today.strftime("%Y-%m"),))
+month_count = c.fetchone()[0]
 
-# 今天這個使用者是否已經記錄過？
-already_visited = ((df["date"].dt.date == today) & (df["user_id"] == user_id)).any()
+# 本年不同使用者數
+c.execute('SELECT COUNT(DISTINCT user_id) FROM visitors WHERE strftime("%Y", date) = ?', (today.strftime("%Y"),))
+year_count = c.fetchone()[0]
 
-# 如果今天還沒記錄，則新增
-if not already_visited:
-    new_row = pd.DataFrame({"date": [today], "user_id": [user_id]})
-    df = pd.concat([df, new_row], ignore_index=True)
-    df.to_csv(COUNTER_FILE, index=False)
-
-# --- 統計不同使用者數量 ---
-total_unique = df["user_id"].nunique()
-today_unique = df[df["date"].dt.date == today]["user_id"].nunique()
-month_unique = df[(df["date"].dt.year == today.year) & (df["date"].dt.month == today.month)]["user_id"].nunique()
-year_unique = df[df["date"].dt.year == today.year]["user_id"].nunique()
+# 總訪問不同使用者數
+c.execute('SELECT COUNT(DISTINCT user_id) FROM visitors')
+total_count = c.fetchone()[0]
 
 # --- 顯示在側邊欄 ---
 with st.sidebar:
     st.markdown("---")
-    st.caption(f"**🔎 瀏覽人數統計**")
-    st.caption(f"總不同使用者數：{total_unique:,}")
-    st.caption(f"今日不同使用者：{today_unique:,} 人")
-    st.caption(f"本月不同使用者：{month_unique:,} 人")
-    st.caption(f"今年不同使用者：{year_unique:,} 人")
+    st.caption(f"**🔎 不同使用者統計**")
+    st.caption(f"今日訪問：{today_count:,} 人")
+    st.caption(f"本月訪問：{month_count:,} 人")
+    st.caption(f"今年訪問：{year_count:,} 人")
+    st.caption(f"總訪問：{total_count:,} 人")
 
 
