@@ -198,44 +198,48 @@ if run_grid_analysis:
 
 # --- 訪問統計區塊 ---
 
+# 設定CSV檔案路徑
 COUNTER_FILE = "visitor_counter.csv"
 today = datetime.date.today()
 
-# 如果沒有檔案就建立一個空的
+# 取得使用者模擬ID（這裡假設網址帶參數 ?user=kevin）
+query_params = st.experimental_get_query_params()
+user_id = query_params.get("user", ["unknown"])[0]
+
+# 檢查並建立檔案（第一次使用）
 if not os.path.exists(COUNTER_FILE):
-    df = pd.DataFrame(columns=["date", "count"])
+    df = pd.DataFrame(columns=["date", "user_id"])
     df.to_csv(COUNTER_FILE, index=False)
 
-# 讀取檔案並確保日期型別正確
+# 嘗試讀取
 try:
     df = pd.read_csv(COUNTER_FILE)
-    df["date"] = pd.to_datetime(df["date"])  # ⭐️這樣正確保留 datetime64 型態
+    df["date"] = pd.to_datetime(df["date"])
 except (pd.errors.EmptyDataError, KeyError):
-    df = pd.DataFrame(columns=["date", "count"])
+    df = pd.DataFrame(columns=["date", "user_id"])
 
-# 檢查今天是否已經有紀錄
-if today in df["date"].dt.date.values:
-    df.loc[df["date"].dt.date == today, "count"] += 1
-else:
-    new_row = pd.DataFrame({"date": [today], "count": [1]})
+# 今天這個使用者是否已經記錄過？
+already_visited = ((df["date"].dt.date == today) & (df["user_id"] == user_id)).any()
+
+# 如果今天還沒記錄，則新增
+if not already_visited:
+    new_row = pd.DataFrame({"date": [today], "user_id": [user_id]})
     df = pd.concat([df, new_row], ignore_index=True)
+    df.to_csv(COUNTER_FILE, index=False)
 
-# 保存更新後的檔案
-df.to_csv(COUNTER_FILE, index=False)
+# --- 統計不同使用者數量 ---
+total_unique = df["user_id"].nunique()
+today_unique = df[df["date"].dt.date == today]["user_id"].nunique()
+month_unique = df[(df["date"].dt.year == today.year) & (df["date"].dt.month == today.month)]["user_id"].nunique()
+year_unique = df[df["date"].dt.year == today.year]["user_id"].nunique()
 
-# 計算統計數字
-total_visits = df["count"].sum()
-today_visits = int(df.loc[df["date"].dt.date == today, "count"].sum())
-month_visits = int(df.loc[(df["date"].dt.year == today.year) & (df["date"].dt.month == today.month), "count"].sum())
-year_visits = int(df.loc[df["date"].dt.year == today.year, "count"].sum())
-
-# --- 顯示在側邊欄底部 ---
+# --- 顯示在側邊欄 ---
 with st.sidebar:
     st.markdown("---")
-    st.caption(f"**🔎 頁面統計**")
-    st.caption(f"總訪問次數：{total_visits:,}")
-    st.caption(f"今日訪問：{today_visits:,} 次")
-    st.caption(f"本月訪問：{month_visits:,} 次")
-    st.caption(f"今年訪問：{year_visits:,} 次")
+    st.caption(f"**🔎 瀏覽人數統計**")
+    st.caption(f"總不同使用者數：{total_unique:,}")
+    st.caption(f"今日不同使用者：{today_unique:,} 人")
+    st.caption(f"本月不同使用者：{month_unique:,} 人")
+    st.caption(f"今年不同使用者：{year_unique:,} 人")
 
 
