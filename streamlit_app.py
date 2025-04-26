@@ -238,19 +238,4 @@ with st.sidebar:
     st.caption(f"本月訪問：{month_visits:,} 次")
     st.caption(f"今年訪問：{year_visits:,} 次")
 
-# --- 額外加碼：最近7天流量圖表 ---
-
-# 只取最近7天的資料
-recent_days = df[df["date"] >= (pd.Timestamp(today) - pd.Timedelta(days=6))]
-recent_days = recent_days.sort_values("date")  # 以日期排序
-
-# 畫圖
-st.subheader("最近7日訪問量")
-fig, ax = plt.subplots(figsize=(8, 3))
-ax.plot(recent_days["date"].dt.strftime('%m-%d'), recent_days["count"], marker="o")
-ax.set_xlabel("日期")
-ax.set_ylabel("訪問次數")
-ax.set_title("最近7日訪問量")
-ax.grid(True)
-st.pyplot(fig)
 
