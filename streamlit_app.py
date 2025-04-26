@@ -194,49 +194,35 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
 
-import datetime
 import pandas as pd
 import os
+import datetime
 
-# 設定存檔路徑
 COUNTER_FILE = "visitor_counter.csv"
-
-# 取得今天日期
 today = datetime.date.today()
 
-# 如果沒有檔案就建立
+# 建立檔案
 if not os.path.exists(COUNTER_FILE):
     df = pd.DataFrame(columns=["date", "count"])
     df.to_csv(COUNTER_FILE, index=False)
 
-# 讀取檔案
+# 讀取並轉型正確
 df = pd.read_csv(COUNTER_FILE)
-df["date"] = pd.to_datetime(df["date"]).dt.date  # 確保是 date 格式
+df["date"] = pd.to_datetime(df["date"])  # ⭐️ 正確轉成 datetime64
 
-# 檢查今天是否有紀錄
-if today in df["date"].values:
-    # 更新今天的數量
-    df.loc[df["date"] == today, "count"] += 1
+# 更新今日訪問
+if today in df["date"].dt.date.values:
+    df.loc[df["date"].dt.date == today, "count"] += 1
 else:
-    # 新增今天
     new_row = pd.DataFrame({"date": [today], "count": [1]})
     df = pd.concat([df, new_row], ignore_index=True)
 
-# 保存回檔案
 df.to_csv(COUNTER_FILE, index=False)
 
-# 計算各種統計
+# 取得各統計數字
 total_visits = df["count"].sum()
-today_visits = int(df.loc[df["date"] == today, "count"].sum())
+today_visits = int(df.loc[df["date"].dt.date == today, "count"].sum())
 month_visits = int(df.loc[(df["date"].dt.year == today.year) & (df["date"].dt.month == today.month), "count"].sum())
 year_visits = int(df.loc[df["date"].dt.year == today.year, "count"].sum())
 
-# 顯示在側邊欄
-with st.sidebar:
-    st.markdown("---")
-    st.caption(f"**🔎 頁面統計**")
-    st.caption(f"總訪問次數：{total_visits:,}")
-    st.caption(f"今日訪問：{today_visits:,} 次")
-    st.caption(f"本月訪問：{month_visits:,} 次")
-    st.caption(f"今年訪問：{year_visits:,} 次")
 
