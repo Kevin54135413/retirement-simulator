@@ -9,6 +9,8 @@ import numpy_financial as npf
 import random
 import matplotlib
 from joblib import Parallel, delayed
+import datetime
+import os
 
 
 matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
@@ -194,35 +196,58 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
 
-import pandas as pd
-import os
-import datetime
+# --- 訪問統計區塊 ---
 
 COUNTER_FILE = "visitor_counter.csv"
 today = datetime.date.today()
 
-# 建立檔案
+# 如果沒有檔案就建立一個空的
 if not os.path.exists(COUNTER_FILE):
     df = pd.DataFrame(columns=["date", "count"])
     df.to_csv(COUNTER_FILE, index=False)
 
-# 讀取並轉型正確
+# 讀取檔案並確保日期型別正確
 df = pd.read_csv(COUNTER_FILE)
-df["date"] = pd.to_datetime(df["date"])  # ⭐️ 正確轉成 datetime64
+df["date"] = pd.to_datetime(df["date"])  # ⭐️這樣正確保留 datetime64 型態
 
-# 更新今日訪問
+# 檢查今天是否已經有紀錄
 if today in df["date"].dt.date.values:
     df.loc[df["date"].dt.date == today, "count"] += 1
 else:
     new_row = pd.DataFrame({"date": [today], "count": [1]})
     df = pd.concat([df, new_row], ignore_index=True)
 
+# 保存更新後的檔案
 df.to_csv(COUNTER_FILE, index=False)
 
-# 取得各統計數字
+# 計算統計數字
 total_visits = df["count"].sum()
 today_visits = int(df.loc[df["date"].dt.date == today, "count"].sum())
 month_visits = int(df.loc[(df["date"].dt.year == today.year) & (df["date"].dt.month == today.month), "count"].sum())
 year_visits = int(df.loc[df["date"].dt.year == today.year, "count"].sum())
 
+# --- 顯示在側邊欄底部 ---
+with st.sidebar:
+    st.markdown("---")
+    st.caption(f"**🔎 頁面統計**")
+    st.caption(f"總訪問次數：{total_visits:,}")
+    st.caption(f"今日訪問：{today_visits:,} 次")
+    st.caption(f"本月訪問：{month_visits:,} 次")
+    st.caption(f"今年訪問：{year_visits:,} 次")
+
+# --- 額外加碼：最近7天流量圖表 ---
+
+# 只取最近7天的資料
+recent_days = df[df["date"] >= (pd.Timestamp(today) - pd.Timedelta(days=6))]
+recent_days = recent_days.sort_values("date")  # 以日期排序
+
+# 畫圖
+st.subheader("最近7日訪問量")
+fig, ax = plt.subplots(figsize=(8, 3))
+ax.plot(recent_days["date"].dt.strftime('%m-%d'), recent_days["count"], marker="o")
+ax.set_xlabel("日期")
+ax.set_ylabel("訪問次數")
+ax.set_title("最近7日訪問量")
+ax.grid(True)
+st.pyplot(fig)
 
