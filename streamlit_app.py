@@ -207,8 +207,11 @@ if not os.path.exists(COUNTER_FILE):
     df.to_csv(COUNTER_FILE, index=False)
 
 # 讀取檔案並確保日期型別正確
-df = pd.read_csv(COUNTER_FILE)
-df["date"] = pd.to_datetime(df["date"])  # ⭐️這樣正確保留 datetime64 型態
+try:
+    df = pd.read_csv(COUNTER_FILE)
+    df["date"] = pd.to_datetime(df["date"])  # ⭐️這樣正確保留 datetime64 型態
+except (pd.errors.EmptyDataError, KeyError):
+    df = pd.DataFrame(columns=["date", "count"])
 
 # 檢查今天是否已經有紀錄
 if today in df["date"].dt.date.values:
