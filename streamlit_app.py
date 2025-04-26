@@ -203,20 +203,23 @@ COUNTER_FILE = "visitor_counter.csv"
 today = datetime.date.today()
 
 # 取得使用者模擬ID（這裡假設網址帶參數 ?user=kevin）
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 user_id = query_params.get("user", ["unknown"])[0]
 
 # 檢查並建立檔案（第一次使用）
 if not os.path.exists(COUNTER_FILE):
-    df = pd.DataFrame(columns=["date", "user_id"])
+    df = pd.DataFrame(columns=["date", "user_id"])  # 一開始就包含 user_id 欄位
     df.to_csv(COUNTER_FILE, index=False)
-
+    
 # 嘗試讀取
 try:
     df = pd.read_csv(COUNTER_FILE)
     df["date"] = pd.to_datetime(df["date"])
+    if "user_id" not in df.columns:
+        df["user_id"] = ""
 except (pd.errors.EmptyDataError, KeyError):
     df = pd.DataFrame(columns=["date", "user_id"])
+
 
 # 今天這個使用者是否已經記錄過？
 already_visited = ((df["date"].dt.date == today) & (df["user_id"] == user_id)).any()
