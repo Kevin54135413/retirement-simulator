@@ -15,9 +15,6 @@ from joblib import Parallel, delayed
 matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
 
 
-import visitor_tracker
-visitor_tracker.track()
-
 SCENARIOS_FIXED = [
     (3, -0.02, 0.25, 0.01, 0.08, "2008–2010 Financial Crisis"),
     (3, 0.10, 0.18, 0.03, 0.05, "2011–2013 Bull Market Recovery"),
@@ -197,5 +194,6 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
 
-
+import visitor_tracker
+visitor_tracker.track()
 
