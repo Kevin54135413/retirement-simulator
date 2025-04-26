@@ -9,33 +9,6 @@ import numpy_financial as npf
 import random
 import matplotlib
 from joblib import Parallel, delayed
-# 加入頁面瀏覽次數與日期統計
-from datetime import datetime
-
-if "page_views" not in st.session_state:
-    st.session_state.page_views = 0
-if "first_visit_date" not in st.session_state:
-    st.session_state.first_visit_date = datetime.now().date()
-
-st.session_state.page_views += 1
-
-# 計算今天、這個月、這年各自的累計
-today = datetime.now().date()
-this_month = today.replace(day=1)
-this_year = today.replace(month=1, day=1)
-
-if "daily_views" not in st.session_state:
-    st.session_state.daily_views = {}
-if "monthly_views" not in st.session_state:
-    st.session_state.monthly_views = {}
-if "yearly_views" not in st.session_state:
-    st.session_state.yearly_views = {}
-
-# 更新各時間區間的統計
-st.session_state.daily_views[today] = st.session_state.daily_views.get(today, 0) + 1
-st.session_state.monthly_views[this_month] = st.session_state.monthly_views.get(this_month, 0) + 1
-st.session_state.yearly_views[this_year] = st.session_state.yearly_views.get(this_year, 0) + 1
-
 
 matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
 st.set_page_config(layout="wide")
@@ -127,14 +100,6 @@ scenarios = generate_random_scenarios(seed=42) if use_random_scenario else SCENA
 results = [simulate_once(i, 1000, withdraw_rate, 30, stock_ratio, 42, scenarios) for i in range(n_simulations)]
 successes = [r for r in results if r["bankruptcy_year"] is None]
 failures = [r for r in results if r["bankruptcy_year"] is not None]
-
-# 顯示網頁瀏覽統計資訊
-st.subheader("Page View Statistics")
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Page Views", f"{st.session_state.page_views}")
-col2.metric("Today's Views", f"{st.session_state.daily_views.get(today, 0)}")
-col3.metric("This Month's Views", f"{st.session_state.monthly_views.get(this_month, 0)}")
-col4.metric("This Year's Views", f"{st.session_state.yearly_views.get(this_year, 0)}")
 
 st.header("Results of Monte Carol Simulation")
 col1, col2 = st.columns(2)
