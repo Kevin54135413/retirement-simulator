@@ -1,5 +1,6 @@
 # Optimized Streamlit Retirement Simulator with Grid Heatmap and IRR Visualization
 import streamlit as st
+st.set_page_config(layout="wide")
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -9,12 +10,13 @@ import numpy_financial as npf
 import random
 import matplotlib
 from joblib import Parallel, delayed
-import visitor_tracker
-visitor_tracker.track()
+
 
 matplotlib.rcParams['font.family'] = ['Arial Unicode MS', 'Heiti TC', 'sans-serif']
-st.set_page_config(layout="wide")
 
+
+import visitor_tracker
+visitor_tracker.track()
 
 SCENARIOS_FIXED = [
     (3, -0.02, 0.25, 0.01, 0.08, "2008–2010 Financial Crisis"),
