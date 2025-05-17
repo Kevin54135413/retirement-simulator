@@ -194,6 +194,4 @@ if run_grid_analysis:
     plot_heatmap(grid_results, "Bottom 25% Median", "Bottom 25% Median Ending Asset", "OrRd")
     plot_heatmap(grid_results, "Median Bankruptcy Year", "Median Bankruptcy Year Heatmap", "YlOrBr")
 
-import visitor_tracker
-visitor_tracker.track()
 
